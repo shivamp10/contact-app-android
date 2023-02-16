@@ -8,6 +8,8 @@ import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,7 +29,6 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
    RecyclerView recyclerView;
    FloatingActionButton btnOpenDialog;
-   SearchView searchView;
     RecyclerViewAdapter adapter;
     TextView noContactTxt;
     SharedPreferences pref;
@@ -40,8 +41,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         btnOpenDialog = findViewById(R.id.btnDialog);
-        searchView = findViewById(R.id.searchView);
         recyclerView = findViewById(R.id.recyclerView);
+
+        contactArr.add(new ContactModel("Shivam","8456454544"));
+        contactArr.add(new ContactModel("Shivam 1","1244557575"));
+        contactArr.add(new ContactModel("Shivam 2","4576724454"));
+        contactArr.add(new ContactModel("Shivam 3","8856457241"));
+        contactArr.add(new ContactModel("Shivam 4","3132458787"));
 
         pref = getSharedPreferences("ContactFetch",MODE_PRIVATE);
         fetched = pref.getBoolean("fetched",false);
@@ -49,43 +55,16 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         myDBHelper = new MyDBHelper(this);
-
-        //checking version of android
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-            //checking read contacts permission is granted or not
-            if(checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED){
-                //if granted
-                if(!fetched) {
-                    getContacts();
-                }
-                else{
-                    contactArr = myDBHelper.fetchContacts();
-                }
-            }
-            else {
-                //if permission not granted request permission
-                requestPermissions(new String[]{Manifest.permission.READ_CONTACTS},1);
-            }
+        if(fetched){
+            contactArr = myDBHelper.fetchContacts();
         }
-
         //Initializing and set adapter
         adapter = new RecyclerViewAdapter(this,contactArr);
         recyclerView.setAdapter(adapter);
 
-        //Operation when user search in search view
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
 
-            //for when user enters text
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                filterList(newText);
-                return true;
-            }
-        });
+        //Operation when user search in search view
+
 
         //Perform operation when clicked on floating ation button for adding contact
         btnOpenDialog.setOnClickListener(new View.OnClickListener() {
@@ -120,6 +99,65 @@ public class MainActivity extends AppCompatActivity {
              dialog.show();
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar_menu,menu);
+        MenuItem.OnActionExpandListener actionExpandListener = new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem item) {
+                return true;
+            }
+
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem item) {
+                return true;
+            }
+        };
+        menu.findItem(R.id.searchMenu).setOnActionExpandListener(actionExpandListener);
+        SearchView searchView = (SearchView) menu.findItem(R.id.searchMenu).getActionView();
+        searchView.setQueryHint("Search Contacts");
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+            //for when user enters text
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterList(newText);
+                return true;
+            }
+        });
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+
+        switch (item.getItemId()){
+            case R.id.importContactMenu:
+                //checking version of android
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+                    //checking read contacts permission is granted or not
+                    if(checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED){
+                        //if granted
+                        if(!fetched) {
+                            getContacts();
+                            Toast.makeText(this, "Fetched", Toast.LENGTH_SHORT).show();
+                        }
+                        else{
+                            Toast.makeText(this, "Contacts already imported", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    else {
+                        //if permission not granted request permission
+                        requestPermissions(new String[]{Manifest.permission.READ_CONTACTS},1);
+                    }
+                }
+        }
+        return true;
     }
 
     @Override
